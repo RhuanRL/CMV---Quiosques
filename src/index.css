@@ -1,0 +1,114 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --surface-0: #f7f7f5;
+  --surface-1: #ffffff;
+  --surface-2: #ffffff;
+  --surface-hover: #f1f0ec;
+
+  --text-primary: #0b0b0a;
+  --text-secondary: #55534c;
+  --text-muted: #8f8d83;
+
+  --border: #e6e4dc;
+  --border-strong: #cfccc0;
+
+  --accent: #2a78d6;
+  --accent-bg: rgba(42, 120, 214, 0.1);
+  --accent-text: #185fa5;
+
+  --success: #0ca30c;
+  --success-bg: rgba(12, 163, 12, 0.1);
+  --success-text: #146c14;
+
+  --warning: #d98c00;
+  --warning-bg: rgba(250, 178, 25, 0.18);
+  --warning-text: #8a5a00;
+
+  --danger: #d03b3b;
+  --danger-bg: rgba(208, 59, 59, 0.1);
+  --danger-text: #a32d2d;
+
+  --shadow-card: 0 1px 2px rgba(11, 11, 10, 0.04), 0 1px 1px rgba(11, 11, 10, 0.03);
+  --shadow-card-hover: 0 4px 12px rgba(11, 11, 10, 0.06), 0 1px 2px rgba(11, 11, 10, 0.04);
+}
+
+.dark {
+  --surface-0: #111110;
+  --surface-1: #191917;
+  --surface-2: #201f1c;
+  --surface-hover: #26251f;
+
+  --text-primary: #f5f4f0;
+  --text-secondary: #c3c1b6;
+  --text-muted: #8f8d83;
+
+  --border: #2b2a26;
+  --border-strong: #3b3a34;
+
+  --accent: #5b9fe3;
+  --accent-bg: rgba(91, 159, 227, 0.16);
+  --accent-text: #8fc0f0;
+
+  --success: #3fcf5c;
+  --success-bg: rgba(63, 207, 92, 0.15);
+  --success-text: #77e08e;
+
+  --warning: #f0b429;
+  --warning-bg: rgba(240, 180, 41, 0.16);
+  --warning-text: #f5c752;
+
+  --danger: #f0605f;
+  --danger-bg: rgba(240, 96, 95, 0.15);
+  --danger-text: #f6928f;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 1px rgba(0, 0, 0, 0.3);
+  --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  background-color: var(--surface-0);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+* {
+  border-color: var(--border);
+}
+
+::selection {
+  background-color: var(--accent-bg);
+  color: var(--accent-text);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--border-strong);
+  border-radius: 999px;
+  border: 2px solid var(--surface-0);
+}
