@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAppDataContext } from '../../context/AppDataContext';
 import { formatBRL } from '../../lib/format';
-import { buscarOverrides, removerOverride, removerTodosOverrides, salvarOverride } from '../../lib/supabase';
+import { buscarOverrides, removerTodosOverrides, salvarOverride } from '../../lib/supabase';
 import { RestoreIcon } from '../ui/icons';
 import { Card } from '../ui/Card';
 
