@@ -95,7 +95,7 @@ function SubCabecalho({ texto, comBorda }: { texto: string; comBorda: boolean })
 }
 
 export function Produtos() {
-  const { produtosCalculados, qtdPrecosEditados, restaurarTodosPrecos } = useAppDataContext();
+  const { produtosCalculados, qtdPrecosEditados, restaurarTodosPrecos, erroSincronizacao } = useAppDataContext();
 
   const grupos = useMemo(() => {
     const vistos = new Set<string>();
@@ -182,8 +182,10 @@ export function Produtos() {
         Cada tamanho mostra três colunas: <strong className="font-semibold text-[var(--text-secondary)]">Custo</strong>{' '}
         (clique no valor para ver a recomposição — cada ingrediente, perdas e custo fixo rateado),{' '}
         <strong className="font-semibold text-[var(--text-secondary)]">Venda</strong> (editável — clique e digite um
-        novo preço para simular) e <strong className="font-semibold text-[var(--text-secondary)]">Margem</strong>{' '}
-        (recalculada na hora, em toda a planilha, até você restaurar).
+        novo preço para simular, sincroniza pelo Supabase entre dispositivos) e{' '}
+        <strong className="font-semibold text-[var(--text-secondary)]">Margem</strong> (recalculada na hora, em toda a
+        planilha, até você restaurar).
+        {erroSincronizacao && <span className="ml-1 text-[var(--warning-text)]">{erroSincronizacao}</span>}
       </p>
 
       <Card className="overflow-x-auto p-0">

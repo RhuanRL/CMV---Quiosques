@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAppDataContext } from '../../context/AppDataContext';
 import { formatBRL } from '../../lib/format';
+import { buscarOverrides, removerOverride, removerTodosOverrides, salvarOverride } from '../../lib/supabase';
 import { RestoreIcon } from '../ui/icons';
 import { Card } from '../ui/Card';
 
@@ -21,10 +22,30 @@ function lerPrecosSalvos(): Record<string, number> {
 export function Acompanhamentos() {
   const { data } = useAppDataContext();
   const [precosEditados, setPrecosEditados] = useState<Record<string, number>>(lerPrecosSalvos);
+  const [erroSync, setErroSync] = useState<string | null>(null);
 
+  // Cache local — o dashboard funciona (com a última versão conhecida) mesmo offline.
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(precosEditados));
   }, [precosEditados]);
+
+  const sincronizar = useCallback(async () => {
+    try {
+      const remoto = await buscarOverrides('overrides_topping', 'valor');
+      setPrecosEditados(remoto);
+      setErroSync(null);
+    } catch {
+      setErroSync('Não consegui buscar os valores mais recentes do Supabase — mostrando a última versão salva neste dispositivo.');
+    }
+  }, []);
+
+  // Busca os valores editados por qualquer dispositivo ao abrir a aba, e de novo quando a aba volta a ficar ativa.
+  useEffect(() => {
+    void sincronizar();
+    const aoFocar = () => void sincronizar();
+    window.addEventListener('focus', aoFocar);
+    return () => window.removeEventListener('focus', aoFocar);
+  }, [sincronizar]);
 
   if (!data) return null;
 
@@ -35,12 +56,18 @@ export function Acompanhamentos() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-[var(--text-muted)]">
           Custo da porção vem do Preço Kg/L da aba Insumos. O Valor final é editável — ainda não decidiu o preço? Só
-          digitar.
+          digitar. As edições sincronizam pelo Supabase entre dispositivos.
+          {erroSync && <span className="ml-1 text-[var(--warning-text)]">{erroSync}</span>}
         </p>
         {qtdEditados > 0 && (
           <button
             type="button"
-            onClick={() => setPrecosEditados({})}
+            onClick={() => {
+              setPrecosEditados({});
+              removerTodosOverrides('overrides_topping').catch(() =>
+                setErroSync('Não consegui limpar os valores editados no Supabase.'),
+              );
+            }}
             className="flex items-center gap-1.5 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-1)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)]"
           >
             <RestoreIcon className="h-3 w-3" />
@@ -99,6 +126,10 @@ export function Acompanhamentos() {
                             const n = Number(v);
                             if (Number.isFinite(n)) {
                               setPrecosEditados((atual) => ({ ...atual, [item.produto]: n }));
+                              setErroSync(null);
+                              salvarOverride('overrides_topping', 'valor', item.produto, n).catch(() =>
+                                setErroSync('Essa edição não foi salva no Supabase (ficou só neste dispositivo por enquanto).'),
+                              );
                             }
                           }}
                           className={`w-16 rounded-md border bg-transparent px-1.5 py-1 text-right text-sm font-medium text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)] ${
