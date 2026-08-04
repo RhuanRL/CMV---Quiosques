@@ -17,8 +17,10 @@ const baseHeaders = {
   'Content-Type': 'application/json',
 };
 
-/** Busca todos os overrides de uma tabela (overrides_preco ou overrides_topping) como um mapa produto -> valor. */
-export async function buscarOverrides(tabela: 'overrides_preco' | 'overrides_topping', coluna: 'preco' | 'valor'): Promise<Record<string, number>> {
+type TabelaOverride = 'overrides_preco' | 'overrides_topping' | 'overrides_custo_fixo';
+
+/** Busca todos os overrides de uma tabela (overrides_preco, overrides_topping ou overrides_custo_fixo) como um mapa produto -> valor. */
+export async function buscarOverrides(tabela: TabelaOverride, coluna: 'preco' | 'valor'): Promise<Record<string, number>> {
   const resp = await fetch(`${REST_URL}/${tabela}?select=produto,${coluna}`, { headers: baseHeaders });
   if (!resp.ok) throw new Error(`Falha ao buscar ${tabela}: ${resp.status}`);
   const linhas: Array<{ produto: string } & Record<string, number>> = await resp.json();
@@ -29,7 +31,7 @@ export async function buscarOverrides(tabela: 'overrides_preco' | 'overrides_top
 
 /** Grava (upsert) um preço editado para um produto. */
 export async function salvarOverride(
-  tabela: 'overrides_preco' | 'overrides_topping',
+  tabela: TabelaOverride,
   coluna: 'preco' | 'valor',
   produto: string,
   valor: number,
@@ -43,7 +45,7 @@ export async function salvarOverride(
 }
 
 /** Remove o override de um produto (volta pro preço original da planilha). */
-export async function removerOverride(tabela: 'overrides_preco' | 'overrides_topping', produto: string): Promise<void> {
+export async function removerOverride(tabela: TabelaOverride, produto: string): Promise<void> {
   const resp = await fetch(`${REST_URL}/${tabela}?produto=eq.${encodeURIComponent(produto)}`, {
     method: 'DELETE',
     headers: baseHeaders,
@@ -52,7 +54,7 @@ export async function removerOverride(tabela: 'overrides_preco' | 'overrides_top
 }
 
 /** Remove todos os overrides de uma tabela. */
-export async function removerTodosOverrides(tabela: 'overrides_preco' | 'overrides_topping'): Promise<void> {
+export async function removerTodosOverrides(tabela: TabelaOverride): Promise<void> {
   const resp = await fetch(`${REST_URL}/${tabela}?produto=neq.__nunca__`, {
     method: 'DELETE',
     headers: baseHeaders,

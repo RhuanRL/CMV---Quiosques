@@ -6,14 +6,25 @@ import { chartPalette } from '../../lib/chartTheme';
 import { formatBRL } from '../../lib/format';
 import { Card } from '../ui/Card';
 import { InfoTermo } from '../ui/InfoTermo';
+import { RestoreIcon } from '../ui/icons';
 
 export function CustosFixos() {
-  const { data, loja, custoFixoRateado } = useAppDataContext();
+  const {
+    data,
+    loja,
+    custoFixoRateado,
+    rateioEfetivo,
+    editarCustoFixo,
+    restaurarCustoFixo,
+    restaurarTodosCustosFixos,
+    qtdCustosFixosEditados,
+    erroSincronizacao,
+  } = useAppDataContext();
   const { theme } = useTheme();
   const palette = chartPalette(theme);
-  if (!data) return null;
+  if (!data || !rateioEfetivo) return null;
 
-  const { rateio } = data;
+  const rateio = rateioEfetivo;
   const total = rateio.totalPorLoja[loja] ?? 0;
   const volume = rateio.volumePorLoja[loja] ?? 0;
 
@@ -92,7 +103,27 @@ export function CustosFixos() {
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card title="Itens de custo fixo" className="overflow-x-auto p-0">
+        <Card className="overflow-x-auto p-0">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-3 pt-3">
+            <div>
+              <h3 className="text-sm font-medium text-[var(--text-secondary)]">Itens de custo fixo</h3>
+              <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                Editável — clique no valor e digite o valor real, {loja && `pra `}
+                {loja}.{erroSincronizacao && <span className="ml-1 text-[var(--warning-text)]">{erroSincronizacao}</span>}
+              </p>
+            </div>
+            {qtdCustosFixosEditados > 0 && (
+              <button
+                type="button"
+                onClick={restaurarTodosCustosFixos}
+                className="flex items-center gap-1.5 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-1)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)]"
+              >
+                <RestoreIcon className="h-3 w-3" />
+                Restaurar {qtdCustosFixosEditados} valor{qtdCustosFixosEditados > 1 ? 'es' : ''} editado
+                {qtdCustosFixosEditados > 1 ? 's' : ''}
+              </button>
+            )}
+          </div>
           <table className="w-full min-w-[360px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-[var(--border)]">
@@ -101,14 +132,47 @@ export function CustosFixos() {
               </tr>
             </thead>
             <tbody>
-              {rateio.itens.map((item, idx) => (
-                <tr key={item.item} className={idx % 2 === 1 ? 'bg-[var(--surface-0)]' : undefined}>
-                  <td className="px-3 py-3 text-[var(--text-primary)]">{item.item}</td>
-                  <td className="px-3 py-3 text-right font-medium text-[var(--text-primary)]">
-                    {formatBRL(item.porLoja[loja] ?? 0)}
-                  </td>
-                </tr>
-              ))}
+              {rateio.itens.map((item, idx) => {
+                const valor = item.porLoja[loja] ?? 0;
+                const editado = data.rateio.itens.find((i) => i.item === item.item)?.porLoja[loja] !== valor;
+                return (
+                  <tr key={item.item} className={idx % 2 === 1 ? 'bg-[var(--surface-0)]' : undefined}>
+                    <td className="px-3 py-3 text-[var(--text-primary)]">{item.item}</td>
+                    <td className="px-3 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <span className="text-xs text-[var(--text-muted)]">R$</span>
+                        <input
+                          type="number"
+                          step={1}
+                          min={0}
+                          value={valor}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (v === '') return;
+                            const n = Number(v);
+                            if (Number.isFinite(n)) editarCustoFixo(item.item, loja, n);
+                          }}
+                          className={`w-24 rounded-md border bg-transparent px-1.5 py-1 text-right text-sm font-medium text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)] ${
+                            editado
+                              ? 'border-[var(--accent)]/50 bg-[var(--accent-bg)]'
+                              : 'border-transparent hover:border-[var(--border-strong)]'
+                          }`}
+                        />
+                        {editado && (
+                          <button
+                            type="button"
+                            onClick={() => restaurarCustoFixo(item.item, loja)}
+                            title="Restaurar valor original da planilha"
+                            className="text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
+                          >
+                            <RestoreIcon className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </Card>
@@ -133,7 +197,7 @@ export function CustosFixos() {
                   maintainAspectRatio: false,
                   plugins: {
                     legend: { position: 'bottom', labels: { color: palette.axis, boxWidth: 10, padding: 16 } },
-                    tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${formatBRL(ctx.parsed)}` } },
+                    tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${formatBRL(Number(ctx.raw))}` } },
                   },
                 }}
               />
