@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react';
+import { Doughnut } from 'react-chartjs-2';
 import { useAppDataContext } from '../../context/AppDataContext';
+import { useTheme } from '../../context/ThemeContext';
+import { chartPalette } from '../../lib/chartTheme';
 import { formatBRL, formatPercent } from '../../lib/format';
 import { Card } from '../ui/Card';
 
@@ -7,6 +10,8 @@ import { Card } from '../ui/Card';
  * ingrediente a ingrediente, perdas e custo fixo rateado — numa tela maior do que o modal da aba Produtos. */
 export function RecomposicaoCusto() {
   const { data, produtosCalculados } = useAppDataContext();
+  const { theme } = useTheme();
+  const palette = chartPalette(theme);
   const [produtoSelecionado, setProdutoSelecionado] = useState<string>('');
 
   const produto = useMemo(() => {
@@ -20,6 +25,12 @@ export function RecomposicaoCusto() {
   const subtotalItens = itens.reduce((soma, item) => soma + item.custoTotal, 0);
   const custoInsumosBase = itens.length > 0 ? subtotalItens : produto.custoInsumos;
   const perdas = produto.custoInsumosComPerdas - custoInsumosBase;
+
+  const composicao = [
+    { label: 'Insumos', valor: custoInsumosBase },
+    { label: 'Perdas', valor: perdas },
+    { label: 'Custo fixo rateado', valor: produto.custoFixoRateado },
+  ].filter((c) => c.valor > 0);
 
   return (
     <div className="mx-auto max-w-4xl space-y-4 px-6 py-6">
@@ -41,9 +52,11 @@ export function RecomposicaoCusto() {
         </select>
       </div>
 
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <Card
         title={produto.produto}
         subtitle={`Preço de venda: ${formatBRL(produto.precoPraticado)} · Margem: ${formatPercent(produto.margemReal)}`}
+        className="lg:col-span-2"
       >
         {itens.length > 0 ? (
           <table className="mt-3 w-full border-collapse text-sm">
@@ -89,6 +102,37 @@ export function RecomposicaoCusto() {
           <Linha label="= Custo total unitário" valor={produto.custoTotalUnitario} destaque forte />
         </div>
       </Card>
+
+      <Card title="Composição do custo">
+        <div className="mx-auto mt-4 flex max-w-[220px] items-center justify-center" style={{ height: 220 }}>
+          {composicao.length > 0 ? (
+            <Doughnut
+              data={{
+                labels: composicao.map((c) => c.label),
+                datasets: [
+                  {
+                    data: composicao.map((c) => c.valor),
+                    backgroundColor: palette.doughnut,
+                    borderColor: palette.surface,
+                    borderWidth: 2,
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: 'bottom', labels: { color: palette.axis, boxWidth: 10, padding: 12 } },
+                  tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${formatBRL(Number(ctx.raw))}` } },
+                },
+              }}
+            />
+          ) : (
+            <p className="text-sm text-[var(--text-muted)]">Sem dados de custo para este produto.</p>
+          )}
+        </div>
+      </Card>
+      </div>
     </div>
   );
 }

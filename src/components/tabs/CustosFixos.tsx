@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
-import { Doughnut } from 'react-chartjs-2';
+import { Bar, Doughnut } from 'react-chartjs-2';
 import { useAppDataContext } from '../../context/AppDataContext';
 import { useTheme } from '../../context/ThemeContext';
 import { chartPalette } from '../../lib/chartTheme';
 import { formatBRL } from '../../lib/format';
 import { Card } from '../ui/Card';
+import { InfoTermo } from '../ui/InfoTermo';
 
 export function CustosFixos() {
   const { data, loja, custoFixoRateado } = useAppDataContext();
@@ -44,11 +45,51 @@ export function CustosFixos() {
           <p className="mt-2 text-3xl font-semibold text-[var(--text-primary)]">{volume.toLocaleString('pt-BR')}</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">unidades/mês</p>
         </Card>
-        <Card title="Custo fixo rateado por venda" className="border-[var(--accent)]/30">
+        <Card
+          title={
+            <InfoTermo explicacao="O total de custo fixo mensal (aluguel, funcionários, etc.) dividido pelo volume de vendas — a fatia desse custo que cada unidade vendida precisa cobrir.">
+              Custo fixo rateado por venda
+            </InfoTermo>
+          }
+          className="border-[var(--accent)]/30"
+        >
           <p className="mt-2 text-3xl font-semibold text-[var(--accent-text)]">{formatBRL(custoFixoRateado)}</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">somado ao custo de cada produto</p>
         </Card>
       </div>
+
+      {rateio.lojas.length > 1 && (
+        <Card title="Custo fixo rateado por venda — todas as lojas" subtitle="Compara sem precisar trocar a loja ativa.">
+          <div className="mt-4" style={{ height: Math.max(140, rateio.lojas.length * 38) }}>
+            <Bar
+              data={{
+                labels: rateio.lojas,
+                datasets: [
+                  {
+                    data: rateio.lojas.map((l) => rateio.rateadoPorLoja[l] ?? 0),
+                    backgroundColor: rateio.lojas.map((l) => (l === loja ? palette.bar : palette.grid)),
+                    borderRadius: 4,
+                    barThickness: 18,
+                  },
+                ],
+              }}
+              options={{
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: { callbacks: { label: (ctx) => formatBRL(ctx.parsed.x ?? 0) } },
+                },
+                scales: {
+                  x: { grid: { color: palette.grid }, ticks: { color: palette.axis, callback: (v) => formatBRL(Number(v)) } },
+                  y: { grid: { display: false }, ticks: { color: palette.axis } },
+                },
+              }}
+            />
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card title="Itens de custo fixo" className="overflow-x-auto p-0">

@@ -5,7 +5,8 @@ import {
   Chart as ChartJS,
   Legend,
   LinearScale,
+  PointElement,
   Tooltip,
 } from 'chart.js';
 
-ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Legend, Tooltip);
+ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip);

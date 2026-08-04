@@ -6,6 +6,7 @@ export interface ChartPalette {
   bar: string;
   surface: string;
   doughnut: [string, string, string];
+  status: { verde: string; amarelo: string; vermelho: string };
 }
 
 const LIGHT: ChartPalette = {
@@ -14,6 +15,7 @@ const LIGHT: ChartPalette = {
   bar: '#2a78d6',
   surface: '#ffffff',
   doughnut: ['#2a78d6', '#eb6834', '#1baf7a'],
+  status: { verde: '#0ca30c', amarelo: '#d98c00', vermelho: '#d03b3b' },
 };
 
 const DARK: ChartPalette = {
@@ -22,6 +24,7 @@ const DARK: ChartPalette = {
   bar: '#5b9fe3',
   surface: '#191917',
   doughnut: ['#5b9fe3', '#f2915f', '#3fcf9e'],
+  status: { verde: '#3fcf5c', amarelo: '#f0b429', vermelho: '#f0605f' },
 };
 
 export function chartPalette(theme: Theme): ChartPalette {

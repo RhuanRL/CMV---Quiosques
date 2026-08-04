@@ -63,7 +63,7 @@ export function Sidebar({ active, onChange }: SidebarProps) {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <aside className="flex h-screen w-56 flex-shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-4">
+    <aside className="flex h-screen w-56 flex-shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-4 print:hidden">
       <div className="flex items-center gap-2.5 px-2 pb-4">
         <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--accent-bg)] text-[var(--accent-text)]">
           <StoreMark className="h-4 w-4" />
