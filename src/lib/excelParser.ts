@@ -73,7 +73,7 @@ function parseReceitas(wb: XLSX.WorkBook): Produto[] {
 }
 
 /** Custo da porção realmente vendida (30g, 30ml, 1 unidade...), a partir do Preço Kg/L. */
-function custoDaPorcao(precoKgL: number, unidade: string, porcao: string): number {
+export function custoDaPorcao(precoKgL: number, unidade: string, porcao: string): number {
   if (unidade === 'un') return precoKgL;
   const match = porcao.match(/(\d+(?:[.,]\d+)?)/);
   const qtd = match ? Number(match[1].replace(',', '.')) : 30;

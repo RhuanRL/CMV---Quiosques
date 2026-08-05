@@ -17,7 +17,12 @@ const baseHeaders = {
   'Content-Type': 'application/json',
 };
 
-type TabelaOverride = 'overrides_preco' | 'overrides_topping' | 'overrides_custo_fixo' | 'overrides_volume';
+type TabelaOverride =
+  | 'overrides_preco'
+  | 'overrides_topping'
+  | 'overrides_topping_kg'
+  | 'overrides_custo_fixo'
+  | 'overrides_volume';
 
 /** Busca todos os overrides de uma tabela (overrides_preco, overrides_topping ou overrides_custo_fixo) como um mapa produto -> valor. */
 export async function buscarOverrides(tabela: TabelaOverride, coluna: 'preco' | 'valor'): Promise<Record<string, number>> {
