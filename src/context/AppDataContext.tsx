@@ -6,6 +6,7 @@ import type { AppData, ProdutoCalculado, RateioData } from '../types';
 
 const PRECOS_STORAGE_KEY = 'cmv-dashboard-precos-editados';
 const CUSTOS_FIXOS_STORAGE_KEY = 'cmv-dashboard-custos-fixos-editados';
+const VOLUMES_STORAGE_KEY = 'cmv-dashboard-volumes-editados';
 
 function lerMapaSalvo(chave: string): Record<string, number> {
   if (typeof window === 'undefined') return {};
@@ -50,6 +51,11 @@ interface AppDataContextValue {
   /** Volta todos os itens de custo fixo aos valores originais da planilha. */
   restaurarTodosCustosFixos: () => void;
   qtdCustosFixosEditados: number;
+  /** Edita o volume médio mensal de vendas de uma loja — é o divisor do rateio, essencial pro custo fixo por unidade fazer sentido. */
+  editarVolume: (loja: string, valor: number) => void;
+  /** Volta o volume de uma loja ao valor original da planilha. */
+  restaurarVolume: (loja: string) => void;
+  qtdVolumesEditados: number;
   /** true enquanto busca os preços editados salvos no Supabase, na primeira carga. */
   sincronizandoPrecos: boolean;
   /** Mensagem de erro de sincronização com o Supabase, se a última tentativa falhou (o app segue funcionando com o cache local). */
@@ -65,6 +71,9 @@ export function AppDataProvider({ children }: PropsWithChildren) {
   const [custosFixosEditados, setCustosFixosEditados] = useState<Record<string, number>>(() =>
     lerMapaSalvo(CUSTOS_FIXOS_STORAGE_KEY),
   );
+  const [volumesEditados, setVolumesEditados] = useState<Record<string, number>>(() =>
+    lerMapaSalvo(VOLUMES_STORAGE_KEY),
+  );
   const [sincronizandoPrecos, setSincronizandoPrecos] = useState(true);
   const [erroSincronizacao, setErroSincronizacao] = useState<string | null>(null);
 
@@ -75,15 +84,20 @@ export function AppDataProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     window.localStorage.setItem(CUSTOS_FIXOS_STORAGE_KEY, JSON.stringify(custosFixosEditados));
   }, [custosFixosEditados]);
+  useEffect(() => {
+    window.localStorage.setItem(VOLUMES_STORAGE_KEY, JSON.stringify(volumesEditados));
+  }, [volumesEditados]);
 
   const sincronizarComSupabase = useCallback(async () => {
     try {
-      const [precos, custosFixos] = await Promise.all([
+      const [precos, custosFixos, volumes] = await Promise.all([
         buscarOverrides('overrides_preco', 'preco'),
         buscarOverrides('overrides_custo_fixo', 'valor'),
+        buscarOverrides('overrides_volume', 'valor'),
       ]);
       setPrecosEditados(precos);
       setCustosFixosEditados(custosFixos);
+      setVolumesEditados(volumes);
       setErroSincronizacao(null);
     } catch {
       setErroSincronizacao(
@@ -104,13 +118,14 @@ export function AppDataProvider({ children }: PropsWithChildren) {
 
   const lojaAtiva = loja || data?.config.lojaSelecionada || data?.rateio.lojas[0] || '';
 
-  // Aplica os overrides de custo fixo sobre o rateio da planilha, recalculando total e custo rateado por loja.
-  // Só recalcula (total = soma dos itens, rateado = total / volume) quando há pelo menos um item editado —
-  // sem edições, usa os valores exatamente como vieram da planilha.
+  // Aplica os overrides de custo fixo e de volume sobre o rateio da planilha, recalculando total,
+  // volume e custo rateado por loja. Só recalcula quando há pelo menos uma edição — sem edições,
+  // usa os valores exatamente como vieram da planilha.
   const rateioEfetivo = useMemo<RateioData | null>(() => {
     if (!data) return null;
     const { rateio } = data;
-    if (Object.keys(custosFixosEditados).length === 0) return rateio;
+    const temEdicao = Object.keys(custosFixosEditados).length > 0 || Object.keys(volumesEditados).length > 0;
+    if (!temEdicao) return rateio;
 
     const itens = rateio.itens.map((item) => {
       const porLoja: Record<string, number> = {};
@@ -122,15 +137,17 @@ export function AppDataProvider({ children }: PropsWithChildren) {
     });
 
     const totalPorLoja: Record<string, number> = {};
+    const volumePorLoja: Record<string, number> = {};
     const rateadoPorLoja: Record<string, number> = {};
     for (const l of rateio.lojas) {
       totalPorLoja[l] = itens.reduce((soma, item) => soma + (item.porLoja[l] ?? 0), 0);
-      const volume = rateio.volumePorLoja[l];
+      volumePorLoja[l] = volumesEditados[l] ?? rateio.volumePorLoja[l] ?? 0;
+      const volume = volumePorLoja[l];
       rateadoPorLoja[l] = volume > 0 ? totalPorLoja[l] / volume : (rateio.rateadoPorLoja[l] ?? 0);
     }
 
-    return { ...rateio, itens, totalPorLoja, rateadoPorLoja };
-  }, [data, custosFixosEditados]);
+    return { ...rateio, itens, totalPorLoja, volumePorLoja, rateadoPorLoja };
+  }, [data, custosFixosEditados, volumesEditados]);
 
   const custoFixoRateado = rateioEfetivo?.rateadoPorLoja[lojaAtiva] ?? 0;
 
@@ -201,8 +218,29 @@ export function AppDataProvider({ children }: PropsWithChildren) {
     );
   };
 
+  const editarVolume = (lojaAlvo: string, valor: number) => {
+    setVolumesEditados((atual) => ({ ...atual, [lojaAlvo]: valor }));
+    setErroSincronizacao(null);
+    salvarOverride('overrides_volume', 'valor', lojaAlvo, valor).catch(() =>
+      setErroSincronizacao('Esse volume não foi salvo no Supabase (ficou só neste dispositivo por enquanto).'),
+    );
+  };
+
+  const restaurarVolume = (lojaAlvo: string) => {
+    setVolumesEditados((atual) => {
+      if (!(lojaAlvo in atual)) return atual;
+      const resto = { ...atual };
+      delete resto[lojaAlvo];
+      return resto;
+    });
+    removerOverride('overrides_volume', lojaAlvo).catch(() =>
+      setErroSincronizacao('Não consegui desfazer esse volume no Supabase.'),
+    );
+  };
+
   const qtdPrecosEditados = produtosCalculados.filter((p) => p.editado).length;
   const qtdCustosFixosEditados = Object.keys(custosFixosEditados).length;
+  const qtdVolumesEditados = Object.keys(volumesEditados).length;
 
   const value: AppDataContextValue = {
     data,
@@ -223,6 +261,9 @@ export function AppDataProvider({ children }: PropsWithChildren) {
     restaurarCustoFixo,
     restaurarTodosCustosFixos,
     qtdCustosFixosEditados,
+    editarVolume,
+    restaurarVolume,
+    qtdVolumesEditados,
     sincronizandoPrecos,
     erroSincronizacao,
   };

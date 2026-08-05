@@ -18,6 +18,8 @@ export function CustosFixos() {
     restaurarCustoFixo,
     restaurarTodosCustosFixos,
     qtdCustosFixosEditados,
+    editarVolume,
+    restaurarVolume,
     erroSincronizacao,
   } = useAppDataContext();
   const { theme } = useTheme();
@@ -27,6 +29,7 @@ export function CustosFixos() {
   const rateio = rateioEfetivo;
   const total = rateio.totalPorLoja[loja] ?? 0;
   const volume = rateio.volumePorLoja[loja] ?? 0;
+  const volumeEditado = (data.rateio.volumePorLoja[loja] ?? 0) !== volume;
 
   const composicao = useMemo(() => {
     let funcionarios = 0;
@@ -52,9 +55,43 @@ export function CustosFixos() {
           <p className="mt-2 text-3xl font-semibold text-[var(--text-primary)]">{formatBRL(total)}</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">{loja}</p>
         </Card>
-        <Card title="Volume médio mensal de vendas">
-          <p className="mt-2 text-3xl font-semibold text-[var(--text-primary)]">{volume.toLocaleString('pt-BR')}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">unidades/mês</p>
+        <Card
+          title={
+            <InfoTermo explicacao="Quantas unidades essa loja vende por mês, em média. É o divisor do rateio — sem um número real aqui, o custo fixo por venda não reflete a loja de verdade.">
+              Volume médio mensal de vendas
+            </InfoTermo>
+          }
+        >
+          <div className="mt-2 flex items-baseline gap-1.5">
+            <input
+              type="number"
+              step={1}
+              min={0}
+              value={volume}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === '') return;
+                const n = Number(v);
+                if (Number.isFinite(n)) editarVolume(loja, n);
+              }}
+              className={`w-28 rounded-md border bg-transparent text-3xl font-semibold text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)] ${
+                volumeEditado
+                  ? 'border-[var(--accent)]/50 bg-[var(--accent-bg)]'
+                  : 'border-transparent hover:border-[var(--border-strong)]'
+              }`}
+            />
+            {volumeEditado && (
+              <button
+                type="button"
+                onClick={() => restaurarVolume(loja)}
+                title="Restaurar valor original da planilha"
+                className="text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
+              >
+                <RestoreIcon className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">unidades/mês, editável</p>
         </Card>
         <Card
           title={
