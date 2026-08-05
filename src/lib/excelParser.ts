@@ -230,7 +230,16 @@ function parseRateio(wb: XLSX.WorkBook): RateioData {
     }
   }
 
-  return { lojas, itens, totalPorLoja, volumePorLoja, rateadoPorLoja };
+  // Volume em kg e custo operacional/kg não existem na planilha (o rateio por peso é uma decisão do
+  // dashboard) — começam zerados e são preenchidos via override no Supabase, por loja.
+  const volumeKgPorLoja: Record<string, number> = {};
+  const custoOperacionalPorKgPorLoja: Record<string, number> = {};
+  lojas.forEach((loja) => {
+    volumeKgPorLoja[loja] = 0;
+    custoOperacionalPorKgPorLoja[loja] = 0;
+  });
+
+  return { lojas, itens, totalPorLoja, volumePorLoja, rateadoPorLoja, volumeKgPorLoja, custoOperacionalPorKgPorLoja };
 }
 
 function parseConfiguracoes(wb: XLSX.WorkBook): Configuracoes {

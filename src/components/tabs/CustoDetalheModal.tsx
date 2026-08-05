@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useAppDataContext } from '../../context/AppDataContext';
+import { METODO_RATEIO_LABEL } from '../../lib/calc';
 import { formatBRL, formatPercent } from '../../lib/format';
 import type { ProdutoCalculado } from '../../types';
 import { CloseIcon } from '../ui/icons';
@@ -98,9 +99,16 @@ export function CustoDetalheModal({ produto, onClose }: Props) {
               prefixo="+"
               muted
             />
-            <Linha label="= Custo dos insumos com perdas" valor={produto.custoInsumosComPerdas} destaque />
-            <Linha label="Custo fixo rateado (loja atual)" valor={produto.custoFixoRateado} prefixo="+" muted />
-            <Linha label="= Custo total unitário" valor={produto.custoTotalUnitario} destaque forte />
+            <Linha label="= CMV (insumos com perdas)" valor={produto.custoInsumosComPerdas} destaque />
+            <Linha
+              label={`Custo operacional (${METODO_RATEIO_LABEL[produto.metodoRateio]})`}
+              valor={produto.custoFixoRateado}
+              prefixo="+"
+              muted
+            />
+            <Linha label="Custos variáveis (impostos + cartão + comissão)" valor={produto.custosVariaveis} prefixo="+" muted />
+            <Linha label="= Custo total unitário" valor={produto.custoTotalUnitario} destaque />
+            <Linha label="Lucro líquido" valor={produto.lucroLiquidoReal} destaque forte />
           </div>
         </div>
       </div>

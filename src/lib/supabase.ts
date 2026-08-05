@@ -22,7 +22,9 @@ type TabelaOverride =
   | 'overrides_topping'
   | 'overrides_topping_kg'
   | 'overrides_custo_fixo'
-  | 'overrides_volume';
+  | 'overrides_volume'
+  | 'overrides_volume_kg'
+  | 'overrides_rateio_manual';
 
 /** Busca todos os overrides de uma tabela (overrides_preco, overrides_topping ou overrides_custo_fixo) como um mapa produto -> valor. */
 export async function buscarOverrides(tabela: TabelaOverride, coluna: 'preco' | 'valor'): Promise<Record<string, number>> {
@@ -65,4 +67,60 @@ export async function removerTodosOverrides(tabela: TabelaOverride): Promise<voi
     headers: baseHeaders,
   });
   if (!resp.ok) throw new Error(`Falha ao limpar ${tabela}: ${resp.status}`);
+}
+
+/** Busca os métodos de rateio (peso/unitario/manual/isento) editados, como um mapa produto -> método. */
+export async function buscarMetodosRateio(): Promise<Record<string, string>> {
+  const resp = await fetch(`${REST_URL}/overrides_metodo_rateio?select=produto,metodo`, { headers: baseHeaders });
+  if (!resp.ok) throw new Error(`Falha ao buscar overrides_metodo_rateio: ${resp.status}`);
+  const linhas: Array<{ produto: string; metodo: string }> = await resp.json();
+  const mapa: Record<string, string> = {};
+  for (const linha of linhas) mapa[linha.produto] = linha.metodo;
+  return mapa;
+}
+
+/** Grava (upsert) o método de rateio escolhido pra um produto. */
+export async function salvarMetodoRateio(produto: string, metodo: string): Promise<void> {
+  const resp = await fetch(`${REST_URL}/overrides_metodo_rateio`, {
+    method: 'POST',
+    headers: { ...baseHeaders, Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify([{ produto, metodo, atualizado_em: new Date().toISOString() }]),
+  });
+  if (!resp.ok) throw new Error(`Falha ao salvar método de rateio: ${resp.status}`);
+}
+
+/** Remove o método de rateio customizado de um produto (volta pro padrão inferido do grupo). */
+export async function removerMetodoRateio(produto: string): Promise<void> {
+  const resp = await fetch(`${REST_URL}/overrides_metodo_rateio?produto=eq.${encodeURIComponent(produto)}`, {
+    method: 'DELETE',
+    headers: baseHeaders,
+  });
+  if (!resp.ok) throw new Error(`Falha ao remover método de rateio: ${resp.status}`);
+}
+
+export interface HistoricoPrecoEntrada {
+  produto: string;
+  preco_anterior: number;
+  preco_novo: number;
+  alterado_em: string;
+}
+
+/** Registra uma alteração de preço no histórico (fire-and-forget — nunca deve travar a edição do preço). */
+export async function registrarHistoricoPreco(produto: string, precoAnterior: number, precoNovo: number): Promise<void> {
+  const resp = await fetch(`${REST_URL}/historico_precos`, {
+    method: 'POST',
+    headers: { ...baseHeaders, Prefer: 'return=minimal' },
+    body: JSON.stringify([{ produto, preco_anterior: precoAnterior, preco_novo: precoNovo }]),
+  });
+  if (!resp.ok) throw new Error(`Falha ao registrar histórico de preço: ${resp.status}`);
+}
+
+/** Busca as últimas alterações de preço registradas, mais recentes primeiro. */
+export async function buscarHistoricoPrecos(limite = 50): Promise<HistoricoPrecoEntrada[]> {
+  const resp = await fetch(
+    `${REST_URL}/historico_precos?select=produto,preco_anterior,preco_novo,alterado_em&order=alterado_em.desc&limit=${limite}`,
+    { headers: baseHeaders },
+  );
+  if (!resp.ok) throw new Error(`Falha ao buscar histórico de preços: ${resp.status}`);
+  return resp.json();
 }

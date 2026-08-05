@@ -60,6 +60,27 @@ function ListaRanking({ produtos }: { produtos: ProdutoCalculado[] }) {
   );
 }
 
+/** Lista compacta de produtos (nome + lucro em R$), usada no ranking por lucro líquido. */
+function ListaRankingLucro({ produtos }: { produtos: ProdutoCalculado[] }) {
+  if (produtos.length === 0) {
+    return <p className="mt-3 text-xs text-[var(--text-muted)]">Sem produtos suficientes ainda.</p>;
+  }
+  return (
+    <ul className="mt-3 space-y-2">
+      {produtos.map((p) => (
+        <li key={p.produto} className="flex items-center justify-between gap-3 text-sm">
+          <span className="truncate text-[var(--text-primary)]">{p.produto}</span>
+          <span
+            className={`font-medium ${p.lucroLiquidoReal >= 0 ? 'text-[var(--success-text)]' : 'text-[var(--danger-text)]'}`}
+          >
+            {formatBRL(p.lucroLiquidoReal)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function VisaoGeral() {
   const { data, produtosCalculados } = useAppDataContext();
   const { theme } = useTheme();
@@ -85,6 +106,16 @@ export function VisaoGeral() {
     return {
       melhores: ordenado.slice(0, k),
       piores: ordenado.slice(Math.max(k, n - k)).reverse(),
+    };
+  }, [produtosCalculados]);
+
+  const { maisLucrativos, menosLucrativos } = useMemo(() => {
+    const ordenado = [...produtosCalculados].sort((a, b) => b.lucroLiquidoReal - a.lucroLiquidoReal);
+    const n = ordenado.length;
+    const k = Math.min(5, n);
+    return {
+      maisLucrativos: ordenado.slice(0, k),
+      menosLucrativos: ordenado.slice(Math.max(k, n - k)).reverse(),
     };
   }, [produtosCalculados]);
 
@@ -177,6 +208,21 @@ export function VisaoGeral() {
         </Card>
         <Card title="Produtos com pior margem">
           <ListaRanking produtos={piores} />
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card
+          title="Mais lucrativos (R$ por unidade)"
+          subtitle="Ainda não temos volume de vendas por produto — este ranking é por unidade, não pelo impacto total no mês."
+        >
+          <ListaRankingLucro produtos={maisLucrativos} />
+        </Card>
+        <Card
+          title="Menos lucrativos (R$ por unidade)"
+          subtitle="Ainda não temos volume de vendas por produto — este ranking é por unidade, não pelo impacto total no mês."
+        >
+          <ListaRankingLucro produtos={menosLucrativos} />
         </Card>
       </div>
 
